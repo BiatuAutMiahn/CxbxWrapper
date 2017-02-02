@@ -14,7 +14,7 @@
 #include <FontConstants.au3>
 #include <WindowsConstants.au3>
 Global Const $_sInfinityProgram_File=StringTrimRight(@AutoItExe,4)&".Update.exe"
-Global Const $_sInfinityProgram_Version="20170202034143"
+Global Const $_sInfinityProgram_Version="20170202131617"
 Global Const $_sInfinityProgram_Magik="ap96zsxTMmjR4EqQ"
 Global $_idIUM_Progress, $_idIUM_Status, $iTest=False;, $sTitle=""
 Local $_iIUM_DataLen, $_iIUM_Size, $_iIUM_SizeLast, $_iIUM_TimerStart, $_hIUM_Timer
