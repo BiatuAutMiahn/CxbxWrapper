@@ -218,3 +218,5 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 CxbxWrapper_stripped.au3
+Builds/
+Repo/
