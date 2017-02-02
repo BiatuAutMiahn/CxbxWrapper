@@ -23,9 +23,8 @@
 #include <Date.au3>
 #Include "Includes\SHA1.au3"
 #include "Includes\WinHttp.au3"
-Global $sTitle="Cxbx Wrapper v1.0"
 #include "Includes\Updater.au3"
-$sTitle&=" (Build: "&$_sInfinityProgram_Version&")"
+Global $sTitle="Cxbx Wrapper v1.0 (Build: "&$_sInfinityProgram_Version&")"
 _WinAPI_Wow64EnableWow64FsRedirection(0)
 #Region ### START Koda GUI section ### Form=C:\Users\Biatu\Documents\Form1.kxf
 Global $sReporterName, $iCxbxRun, $sCxbxBuild, $sCxbxDate, $sCxbxBuildPath, $aCxbxBuilds, $iCxbxNoBuilds, $iCxbxParentPID, $iCxbxChildPID
