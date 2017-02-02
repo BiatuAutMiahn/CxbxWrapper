@@ -13,10 +13,11 @@
 #include <WinAPIFiles.au3>
 #include <FontConstants.au3>
 #include <WindowsConstants.au3>
+#include <winhttp.au3>
 Global Const $_sInfinityProgram_File=StringTrimRight(@AutoItExe,4)&".Update.exe"
-Global Const $_sInfinityProgram_Version="20170202164843"
+Global Const $_sInfinityProgram_Version="20170202172604"
 Global Const $_sInfinityProgram_Magik="ap96zsxTMmjR4EqQ"
-Global $_idIUM_Progress, $_idIUM_Status, $_iIUM_Test=False, $_sIUM_Title="Infinity Updater"
+Global $_idIUM_Progress, $_idIUM_Status, $_iIUM_Test=True, $_sIUM_Title="Infinity Updater"
 Local $_iIUM_DataLen, $_iIUM_Size, $_iIUM_SizeLast, $_iIUM_TimerStart, $_hIUM_Timer
 If @Compiled Or $_iIUM_Test Then
     _InfinityUpdate_Init()
@@ -51,7 +52,7 @@ Func _InfinityUpdate_Init()
                         $sProcPath=_WinAPI_GetProcessFileName($aProcesses[$i][1])
                         If @error Then ContinueLoop
                         If $sProcPath=@ScriptDir&"\"&$sDest Then
-                            MsgBox(48,$_sIUM_Title,"Cannot update while program is running, please close all instances to continue.")
+                            MsgBox(48,$_sIUM_Title,"Cannot update while program is running, please close all instances to continue.",0,$hWnd)
                             ExitLoop
                         EndIf
                     Next
@@ -61,7 +62,7 @@ Func _InfinityUpdate_Init()
             WEnd
             While Sleep(125)
                 If _WinAPI_FileInUse($sDest) Then
-                    MsgBox(48,$_sIUM_Title,"Cannot update while file is in use!"&@CRLF&"    -Please close any program(s) that may be using the file."&@CRLF&"    -Please make sure that the application being updated has no other running instances.")
+                    MsgBox(48,$_sIUM_Title,"Cannot update while file is in use!"&@CRLF&"    -Please close any program(s) that may be using the file."&@CRLF&"    -Please make sure that the application being updated has no other running instances.",0,$hWnd)
                 Else
                     ExitLoop
                 EndIf
@@ -82,7 +83,7 @@ Func _InfinityUpdate_Init()
             ;MsgBox(64,"Info",$sCmdLines)
             Run($sDest&' ~!Update.Success ~!CmdLine='&$sCmdLines&'',@ScriptDir)
         Else
-            MsgBox(16,"Error","This is an Updater!")
+            MsgBox(16,"Error","This is an Updater!",0,$hWnd)
         EndIf
         Exit
     EndIf
@@ -137,7 +138,7 @@ Func _InfinityUpdate_Init()
             EndIf
         ElseIf StringInStr($CmdLineRaw,"~!Update.Failed") Then
             GUICtrlSetData($_idIUM_Status,"Status: Update Failed")
-            $sRet=MsgBox(32+4,$_sIUM_Title,"The Update Attempt has failed."&@CRLF&"Error: "&StringReplace($CmdLineRaw,"~!Update.Failed","")&@CRLF&@CRLF&", would you like to try again?")
+            $sRet=MsgBox(32+4,$_sIUM_Title,"The Update Attempt has failed."&@CRLF&"Error: "&StringReplace($CmdLineRaw,"~!Update.Failed","")&@CRLF&@CRLF&", would you like to try again?",0,$hWnd)
             Switch $sRet
                 Case 7
                     $iUpdate=False
@@ -155,6 +156,24 @@ Func _InfinityUpdate_Init()
             GUICtrlSetData($_idIUM_Status,"Status: Checking for Update...No Update Available!")
             Sleep(500)
         Else
+            If StringLeft($sRet,2)="~!" Then
+                Local $_sIUM_ErrMsg
+                Switch $sRet
+                    Case "~!Error@1","~!Error@6";Invalid Request
+                        $_sIUM_ErrMsg="Invalid Server Request"
+                    Case "~!Error@2";No Magik Specified
+                        $_sIUM_ErrMsg="Magik Error"
+                    Case "~!Error@3","~!Error@5";Invalid Magik
+                        $_sIUM_ErrMsg="Server Update Data Error 3"
+                    Case "~!Error@4"
+                        $_sIUM_ErrMsg="Server Update Data Error 4"
+                EndSwitch
+                If $_sIUM_ErrMsg<>"" Then
+                    GUICtrlSetData($_idIUM_Status,"Status: Checking for Update...Failed!")
+                    MsgBox(16,$_sIUM_Title,$_sIUM_ErrMsg,0,$hWnd)
+                    Return
+                EndIf
+            EndIf
             If Number($_sInfinityProgram_Version)>=Number($sRet) Then
                 GUICtrlSetData($_idIUM_Status,"Status: Checking for Update...No Update Available!")
                 Sleep(500)
@@ -165,10 +184,28 @@ Func _InfinityUpdate_Init()
                                                      "NOTE: Updates may be unstable or buggy as this software is a beta."&@CRLF& _
                                                      "    Please contact the developer for help."&@CRLF&@CRLF& _
                                                      "Current Version: "&_IUM_FormatVer($_sInfinityProgram_Version)&@CRLF& _
-                                                     "Latest Version: "&_IUM_FormatVer($sRet)&@CRLF)
+                                                     "Latest Version: "&_IUM_FormatVer($sRet)&@CRLF,0,$hWnd)
                 If $iRet=6 Then
                     GUICtrlSetData($_idIUM_Status,"Status: Downloading Update...")
                     $sUpdate=_IUM_Update($_sInfinityProgram_Magik)
+                    If StringLeft($sUpdate,2)="~!" Then
+                        Local $_sIUM_ErrMsg
+                        Switch $sUpdate
+                            Case "~!Error@1","~!Error@6";Invalid Request
+                                $_sIUM_ErrMsg="Invalid Server Request"
+                            Case "~!Error@2";No Magik Specified
+                                $_sIUM_ErrMsg="Magik Error"
+                            Case "~!Error@3","~!Error@5";Invalid Magik
+                                $_sIUM_ErrMsg="Server Update Data Error 3"
+                            Case "~!Error@4"
+                                $_sIUM_ErrMsg="Server Update Data Error 4"
+                        EndSwitch
+                        If $_sIUM_ErrMsg<>"" Then
+                            GUICtrlSetData($_idIUM_Status,"Status: Checking for Update...Failed!")
+                            MsgBox(16,$_sIUM_Title,$_sIUM_ErrMsg,0,$hWnd)
+                            Return
+                        EndIf
+                    EndIf
                     GUICtrlSetData($_idIUM_Status,"Status: Downloading Update...Done")
                     GUICtrlSetData($_idIUM_Status,"Status: Updating...")
                     $hFile=FileOpen($_sInfinityProgram_File,2+16)
@@ -258,4 +295,3 @@ Func _IUM_CheckUpdate($sMagik)
     _WinHttpCloseHandle($hOpen)
     Return SetError(0,0,BinaryToString($vData))
 EndFunc
-
