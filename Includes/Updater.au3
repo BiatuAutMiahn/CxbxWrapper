@@ -19,10 +19,10 @@
 #include <LZMA.au3>
 #include <Date.au3>
 Global Const $_sInfinityProgram_File=StringTrimRight(@AutoItExe,4)&".Update.exe"
-Global Const $_sInfinityProgram_Version="20170202204936"
+Global Const $_sInfinityProgram_Version="20170202211116"
 Global Const $_sInfinityProgram_Magik="ap96zsxTMmjR4EqQ"
 Global $_idIUM_Progress, $_idIUM_Status, $_iIUM_Test=False, $_sIUM_Title="Infinity Updater"
-Local $_iIUM_DataLen, $_iIUM_Size, $_iIUM_SizeLast, $_iIUM_TimerStart, $_hIUM_Timer, $_iIUM_LZMA=False
+Global $_iIUM_DataLen, $_iIUM_DataRead, $_iIUM_Start, $_iIUM_Curr, $_iIUM_LZMA=False
 If @Compiled Or $_iIUM_Test Then
     _InfinityUpdate_Init()
 EndIf
@@ -240,6 +240,9 @@ Func _IUM_UpdateFail($sRun,$sError="NaN")
     Exit 1
 EndFunc
 
+Func _IUM_Stat()
+EndFunc
+
 Func _IUM_Update($sMagik)
     Local $_sIUM_GetType="Get"
     Local $hOpen = _WinHttpOpen()
@@ -253,22 +256,25 @@ Func _IUM_Update($sMagik)
     Local $sStatusCode = _WinHttpQueryHeaders($hRequest, $WINHTTP_QUERY_STATUS_CODE, $WINHTTP_HEADER_NAME_BY_INDEX, $WINHTTP_NO_HEADER_INDEX)
     If @error Then Return SetError(5,0,0)
     If $sStatusCode<>"200" Then Return SetError(6,$sStatusCode,0)
-    Local $sContentRange = _WinHttpQueryHeaders($hRequest, $WINHTTP_QUERY_CONTENT_LENGTH, $WINHTTP_HEADER_NAME_BY_INDEX, $WINHTTP_NO_HEADER_INDEX)
+    $sContentLength = _WinHttpQueryHeaders($hRequest, $WINHTTP_QUERY_CONTENT_LENGTH, $WINHTTP_HEADER_NAME_BY_INDEX, $WINHTTP_NO_HEADER_INDEX)
     If @error Then Return SetError(7,0,0)
-    Local $vData,$iRead
+    $_iIUM_DataLen=Int($sContentLength)
+    Local $vData
+    $_iIUM_DataRead=0
     If _WinHttpQueryDataAvailable($hRequest) Then
-        Local $_sIUM_Start=_Date_Time_GetTickCount()/1000
+        $_iIUM_Start=_Date_Time_GetTickCount()/1000
+;~         AdlibRegister(_IUM_Stat,128)
         While Sleep(1)
             $vDataTmp=_WinHttpReadData($hRequest, 2)
             If @error Then ExitLoop
-            $iRead+=@extended
+            $_iIUM_DataRead+=@extended
             $vData &=BinaryToString($vDataTmp)
-            ;ConsoleWrite($iRead&"|"&$sContentRange&@CRLF)
-            GUICtrlSetData($_idIUM_Progress,100*($iRead/$sContentRange))
             ;transfer_speed = bytes_transferred / ( current_time - start_time)
-            $_sIUM_Curr=_Date_Time_GetTickCount()/1000
-            GUICtrlSetData($_idIUM_Status,"Status: Downloading Update... ("&_WinAPI_StrFormatByteSize($iRead)&"/"&_WinAPI_StrFormatByteSize($sContentRange)&"@"&_WinAPI_StrFormatByteSize(($iRead/($_sIUM_Curr-$_sIUM_Start)))&"/s)")
+            GUICtrlSetData($_idIUM_Progress,100*($_iIUM_DataRead/$_iIUM_DataLen))
+            $_iIUM_Curr=_Date_Time_GetTickCount()/1000
+            GUICtrlSetData($_idIUM_Status,"Status: Downloading Update... ("&_WinAPI_StrFormatByteSize($_iIUM_DataRead)&"/"&_WinAPI_StrFormatByteSize($_iIUM_DataLen)&"@"&_WinAPI_StrFormatByteSize(($_iIUM_DataRead/($_iIUM_Curr-$_iIUM_Start)))&"/s)")
         WEnd
+;~         AdlibUnRegister(_IUM_Stat)
     Else
         If @error Then Return SetError(8,0,0)
     EndIf
