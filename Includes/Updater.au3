@@ -16,13 +16,14 @@
 #include <WindowsConstants.au3>
 #include <WinHttp.au3>
 #include <B64.au3>
+#include <SHA1.au3>
 #include <LZMA.au3>
 #include <Date.au3>
 Global Const $_sInfinityProgram_File=StringTrimRight(@AutoItExe,4)&".Update.exe"
-Global Const $_sInfinityProgram_Version="20170202230702"
+Global Const $_sInfinityProgram_Version="20170203173232"
 Global Const $_sInfinityProgram_Magik="ap96zsxTMmjR4EqQ"
-Global $_idIUM_Progress, $_idIUM_Status, $_iIUM_Test=False, $_sIUM_Title="Infinity Updater"
-Global $_iIUM_DataLen, $_iIUM_DataRead, $_iIUM_Start, $_iIUM_Curr, $_iIUM_LZMA=False
+Global $_idIUM_Progress, $_idIUM_Status, $_iIUM_Test=True, $_sIUM_Title="Infinity Updater"
+Global $_iIUM_DataLen, $_iIUM_DataRead, $_iIUM_Start, $_iIUM_Curr, $_iIUM_LZMA=True
 If @Compiled Or $_iIUM_Test Then
     _InfinityUpdate_Init()
 EndIf
@@ -263,25 +264,28 @@ Func _IUM_Update($sMagik)
     $_iIUM_DataRead=0
     If _WinHttpQueryDataAvailable($hRequest) Then
         $_iIUM_Start=_Date_Time_GetTickCount()/1000
-;~         AdlibRegister(_IUM_Stat,128)
         While Sleep(1)
             $vDataTmp=_WinHttpReadData($hRequest, 2)
             If @error Then ExitLoop
             $_iIUM_DataRead+=@extended
             $vData &=BinaryToString($vDataTmp)
-            ;transfer_speed = bytes_transferred / ( current_time - start_time)
             GUICtrlSetData($_idIUM_Progress,100*($_iIUM_DataRead/$_iIUM_DataLen))
             $_iIUM_Curr=_Date_Time_GetTickCount()/1000
             GUICtrlSetData($_idIUM_Status,"Status: Downloading Update... ("&_WinAPI_StrFormatByteSize($_iIUM_DataRead)&"/"&_WinAPI_StrFormatByteSize($_iIUM_DataLen)&"@"&_WinAPI_StrFormatByteSize(($_iIUM_DataRead/($_iIUM_Curr-$_iIUM_Start)))&"/s)")
         WEnd
-;~         AdlibUnRegister(_IUM_Stat)
     Else
         If @error Then Return SetError(8,0,0)
     EndIf
     _WinHttpCloseHandle($hRequest)
     _WinHttpCloseHandle($hConnect)
     _WinHttpCloseHandle($hOpen)
+    $sHash=_IUM_GetHash($sMagik)
+    If @error Then Return SetError(9,@Error,0)
     If $_iIUM_LZMA Then $vData=_LZMA_Decompress(_B64Decode($vData))
+    If $sHash<>_SHA1($vData) Then
+        MsgBox(48,$_sIUM_Title,"Integrity Check Failed!")
+        Return SetError(10,0,0)
+    EndIf
     Sleep(1000)
     Return SetError(0,0,$vData)
 EndFunc
@@ -311,5 +315,33 @@ Func _IUM_CheckUpdate($sMagik)
     _WinHttpCloseHandle($hConnect)
     _WinHttpCloseHandle($hOpen)
     Return SetError(0,0,BinaryToString($vData))
+EndFunc
+
+
+Func _IUM_GetHash($sMagik)
+    Local $hOpen = _WinHttpOpen()
+    If @error Then Return SetError(1,0,0)
+    Local $hConnect = _WinHttpConnect($hOpen, "InfinityCommunicationsGateway.net")
+    If @error Then Return SetError(3,0,0)
+    Local $hRequest = _WinHttpSimpleSendSSLRequest($hConnect, "GET","priv/Infinity.UpdateManager?Action=GetHash&Magik="&$sMagik)
+    If @error Then Return SetError(4,0,0)
+    Local $sStatusCode = _WinHttpQueryHeaders($hRequest, $WINHTTP_QUERY_STATUS_CODE, $WINHTTP_HEADER_NAME_BY_INDEX, $WINHTTP_NO_HEADER_INDEX)
+    If @error Then Return SetError(5,0,0)
+    If $sStatusCode<>"200" Then Return SetError(6,$sStatusCode,0)
+    Local $sContentRange = _WinHttpQueryHeaders($hRequest, $WINHTTP_QUERY_CONTENT_LENGTH, $WINHTTP_HEADER_NAME_BY_INDEX, $WINHTTP_NO_HEADER_INDEX)
+    If @error Then Return SetError(7,0,0)
+    Local $vData,$iRead
+    If _WinHttpQueryDataAvailable($hRequest) Then
+        While Sleep(1)
+            $vData &= BinaryToString(_WinHttpReadData($hRequest, 2))
+            If @error Then ExitLoop
+        WEnd
+    Else
+        If @error Then Return SetError(8,0,0)
+    EndIf
+    _WinHttpCloseHandle($hRequest)
+    _WinHttpCloseHandle($hConnect)
+    _WinHttpCloseHandle($hOpen)
+    Return SetError(0,0,_B64Decode($vData))
 EndFunc
 
