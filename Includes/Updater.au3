@@ -8,27 +8,31 @@
 
 #ce ----------------------------------------------------------------------------
 #include-once
+#include-once
 #include <WinAPIProc.au3>
 #include <Array.au3>
 #include <WinAPIFiles.au3>
 #include <FontConstants.au3>
 #include <WindowsConstants.au3>
-#include <winhttp.au3>
+#include <WinHttp.au3>
+#include <B64.au3>
+#include <LZMA.au3>
+#include <Date.au3>
 Global Const $_sInfinityProgram_File=StringTrimRight(@AutoItExe,4)&".Update.exe"
-Global Const $_sInfinityProgram_Version="20170202172604"
+Global Const $_sInfinityProgram_Version="20170202204936"
 Global Const $_sInfinityProgram_Magik="ap96zsxTMmjR4EqQ"
-Global $_idIUM_Progress, $_idIUM_Status, $_iIUM_Test=True, $_sIUM_Title="Infinity Updater"
-Local $_iIUM_DataLen, $_iIUM_Size, $_iIUM_SizeLast, $_iIUM_TimerStart, $_hIUM_Timer
+Global $_idIUM_Progress, $_idIUM_Status, $_iIUM_Test=False, $_sIUM_Title="Infinity Updater"
+Local $_iIUM_DataLen, $_iIUM_Size, $_iIUM_SizeLast, $_iIUM_TimerStart, $_hIUM_Timer, $_iIUM_LZMA=False
 If @Compiled Or $_iIUM_Test Then
     _InfinityUpdate_Init()
 EndIf
 Func _InfinityUpdate_Init()
     Local $iUpdate=True, $iHeight=75, $iWidth=400
-    $hWnd=GUICreate($_sIUM_Title,256+64,64-4,-1,-1,0x16C00000)
+    $hWnd=GUICreate($_sIUM_Title,256+64+32,64-4,-1,-1,0x16C00000)
     GUISetIcon(@AutoItExe,-6)
     GUISetFont(8.3,400,0,"Consolas",$hWnd,$CLEARTYPE_QUALITY)
-    $_idIUM_Status=GUICtrlCreateLabel("Status: ",8,10,256+64,20)
-    $_idIUM_Progress=GUICtrlCreateProgress(8,32,256+32+16,20)
+    $_idIUM_Status=GUICtrlCreateLabel("Status: ",8,10,256+64+32,20)
+    $_idIUM_Progress=GUICtrlCreateProgress(8,32,256+32+16+32,20)
     GUISetState()
     ;Do the update
     If @Compiled And StringInStr(@ScriptName,".Update.exe") Then
@@ -186,7 +190,7 @@ Func _InfinityUpdate_Init()
                                                      "Current Version: "&_IUM_FormatVer($_sInfinityProgram_Version)&@CRLF& _
                                                      "Latest Version: "&_IUM_FormatVer($sRet)&@CRLF,0,$hWnd)
                 If $iRet=6 Then
-                    GUICtrlSetData($_idIUM_Status,"Status: Downloading Update...")
+                    GUICtrlSetData($_idIUM_Status,"Status: Awaiting Response...")
                     $sUpdate=_IUM_Update($_sInfinityProgram_Magik)
                     If StringLeft($sUpdate,2)="~!" Then
                         Local $_sIUM_ErrMsg
@@ -201,7 +205,7 @@ Func _InfinityUpdate_Init()
                                 $_sIUM_ErrMsg="Server Update Data Error 4"
                         EndSwitch
                         If $_sIUM_ErrMsg<>"" Then
-                            GUICtrlSetData($_idIUM_Status,"Status: Checking for Update...Failed!")
+                            GUICtrlSetData($_idIUM_Status,"Status: Downloading Update...Failed!")
                             MsgBox(16,$_sIUM_Title,$_sIUM_ErrMsg,0,$hWnd)
                             Return
                         EndIf
@@ -237,12 +241,15 @@ Func _IUM_UpdateFail($sRun,$sError="NaN")
 EndFunc
 
 Func _IUM_Update($sMagik)
+    Local $_sIUM_GetType="Get"
     Local $hOpen = _WinHttpOpen()
     If @error Then Return SetError(1,0,0)
     Local $hConnect = _WinHttpConnect($hOpen, "InfinityCommunicationsGateway.net")
     If @error Then Return SetError(3,0,0)
-    Local $hRequest = _WinHttpSimpleSendSSLRequest($hConnect, "GET","priv/Infinity.UpdateManager/?Action=Get&Magik="&$sMagik)
+    If $_iIUM_LZMA Then $_sIUM_GetType&="Lzma"
+    Local $hRequest = _WinHttpSimpleSendSSLRequest($hConnect, "GET","priv/Infinity.UpdateManager/?Action="&$_sIUM_GetType&"&Magik="&$sMagik)
     If @error Then Return SetError(4,0,0)
+    GUICtrlSetData($_idIUM_Status,"Status: Downloading Update...")
     Local $sStatusCode = _WinHttpQueryHeaders($hRequest, $WINHTTP_QUERY_STATUS_CODE, $WINHTTP_HEADER_NAME_BY_INDEX, $WINHTTP_NO_HEADER_INDEX)
     If @error Then Return SetError(5,0,0)
     If $sStatusCode<>"200" Then Return SetError(6,$sStatusCode,0)
@@ -250,6 +257,7 @@ Func _IUM_Update($sMagik)
     If @error Then Return SetError(7,0,0)
     Local $vData,$iRead
     If _WinHttpQueryDataAvailable($hRequest) Then
+        Local $_sIUM_Start=_Date_Time_GetTickCount()/1000
         While Sleep(1)
             $vDataTmp=_WinHttpReadData($hRequest, 2)
             If @error Then ExitLoop
@@ -257,7 +265,9 @@ Func _IUM_Update($sMagik)
             $vData &=BinaryToString($vDataTmp)
             ;ConsoleWrite($iRead&"|"&$sContentRange&@CRLF)
             GUICtrlSetData($_idIUM_Progress,100*($iRead/$sContentRange))
-            GUICtrlSetData($_idIUM_Status,"Status: Downloading Update... ("&_WinAPI_StrFormatByteSize($iRead)&"/"&_WinAPI_StrFormatByteSize($sContentRange)&")")
+            ;transfer_speed = bytes_transferred / ( current_time - start_time)
+            $_sIUM_Curr=_Date_Time_GetTickCount()/1000
+            GUICtrlSetData($_idIUM_Status,"Status: Downloading Update... ("&_WinAPI_StrFormatByteSize($iRead)&"/"&_WinAPI_StrFormatByteSize($sContentRange)&"@"&_WinAPI_StrFormatByteSize(($iRead/($_sIUM_Curr-$_sIUM_Start)))&"/s)")
         WEnd
     Else
         If @error Then Return SetError(8,0,0)
@@ -265,6 +275,7 @@ Func _IUM_Update($sMagik)
     _WinHttpCloseHandle($hRequest)
     _WinHttpCloseHandle($hConnect)
     _WinHttpCloseHandle($hOpen)
+    If $_iIUM_LZMA Then $vData=_LZMA_Decompress(_B64Decode($vData))
     Sleep(1000)
     Return SetError(0,0,$vData)
 EndFunc
@@ -295,3 +306,4 @@ Func _IUM_CheckUpdate($sMagik)
     _WinHttpCloseHandle($hOpen)
     Return SetError(0,0,BinaryToString($vData))
 EndFunc
+

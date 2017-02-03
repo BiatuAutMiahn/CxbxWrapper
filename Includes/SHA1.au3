@@ -12,7 +12,6 @@ Global $_SHA1_InitOffset, $_SHA1_InputOffset, $_SHA1_ResultOffset
 
 Global $_HASH_SHA1[4] = [20, 96, '_SHA1_', '_SHA1_']
 
-
 Func _SHA1_Exit()
 	$_SHA1_CodeBuffer = 0
 	_MemVirtualFree($_SHA1_CodeBufferMemory, 0, $MEM_RELEASE)

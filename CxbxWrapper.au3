@@ -386,7 +386,7 @@ Func _RunCxbx()
 	$sLogTmpPath = @TempDir & "\" & $sXbeTitleID & "." & $sCxbxBuild & ".log"
 	$sLogPath = $sXbeDir & "\CxbxLogs\"&StringReplace($sXbePath,$sXbeDir&"\","")
     $sLogFile=$sLogPath&"\"&$sCxbxBuild&".log"
-	$hLogOut = FileClose(FileOpen($sLogPath, 10))
+	$hLogOut = FileClose(FileOpen($sLogFile, 10))
 	If FileExists($sLogTmpPath) Then FileDelete($sLogTmpPath)
 	$sRegCxbxLog = "HKEY_CURRENT_USER\Software\Cxbx-Reloaded"
 	RegWrite($sRegCxbxLog, "KrnlDebug", "REG_DWORD", 2)
