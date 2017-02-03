@@ -599,7 +599,7 @@ Func _XbeGetInfo($sPath)
     EndIf
     If $bTitleName<>"" Then
 		$sXbeTitleName = $bTitleName
-		GUICtrlSetState($idXbeTitleName, $GUI_DISABLE)
+		;GUICtrlSetState($idXbeTitleName, $GUI_DISABLE)
 		GUICtrlSetData($idXbeTitleName, $bTitleName)
 	EndIf
 EndFunc   ;==>_XbeGetInfo
@@ -777,13 +777,13 @@ Func _LoadReport()
     $sSHA=_SHA1(FileRead($sXbePath))
     $sSection=$sCxbxBuild&"|"&$sCxbxDate&"|"&$sSHA
 	If FileExists($sReport) Then
-        If $sXbeTitleName="" Or $sXbeTitleName="NaN" Then
+        ;If $sXbeTitleName="" Or $sXbeTitleName="NaN" Then
             $sXbeTitleName=IniRead($sReport, $sSection, "TitleName","")
             If $sXbeTitleName<>"" Then
                 GUICtrlSetData($idXbeTitleName,$sXbeTitleName)
                 ;GUICtrlSetState($idXbeTitleName,$GUI_DISABLE)
             EndIf
-        EndIf
+        ;EndIf
 		$iReportState = Int(IniRead($sReport, $sSection, "ReportState", 0))
 		$iReportCrash = Int(IniRead($sReport, $sSection, "ReportCrash", 0))
 		$iHasGfx = Int(IniRead($sReport, $sSection, "HasGfx", 0))
@@ -1098,7 +1098,7 @@ Func _GuiSetDefaults()
 	GUICtrlSetState($idCxbxRun, $GUI_DISABLE)
 	GUICtrlSetState($idCxbxUpdate, $GUI_DISABLE)
 
-	GUICtrlSetState($idXbeTitleName, $GUI_DISABLE)
+	;GUICtrlSetState($idXbeTitleName, $GUI_DISABLE)
 
 	GUICtrlSetState($idStateCrash, $GUI_DISABLE)
 	GUICtrlSetState($idStateNothing, $GUI_DISABLE)
@@ -1408,7 +1408,7 @@ Func _GuiUpdateState()
 		GUICtrlSetState($idCxbxBuild, $GUI_DISABLE)
 		GUICtrlSetState($idCxbxRun, $GUI_DISABLE)
 		GUICtrlSetState($idCxbxUpdate, $GUI_DISABLE)
-		GUICtrlSetState($idXbeTitleName, $GUI_DISABLE)
+		;GUICtrlSetState($idXbeTitleName, $GUI_DISABLE)
 	EndIf
 EndFunc   ;==>_GuiUpdateState
 #EndRegion GuiStuff
