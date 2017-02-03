@@ -19,7 +19,7 @@
 #include <LZMA.au3>
 #include <Date.au3>
 Global Const $_sInfinityProgram_File=StringTrimRight(@AutoItExe,4)&".Update.exe"
-Global Const $_sInfinityProgram_Version="20170202211116"
+Global Const $_sInfinityProgram_Version="20170202223452"
 Global Const $_sInfinityProgram_Magik="ap96zsxTMmjR4EqQ"
 Global $_idIUM_Progress, $_idIUM_Status, $_iIUM_Test=False, $_sIUM_Title="Infinity Updater"
 Global $_iIUM_DataLen, $_iIUM_DataRead, $_iIUM_Start, $_iIUM_Curr, $_iIUM_LZMA=False

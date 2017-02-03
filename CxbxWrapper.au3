@@ -797,14 +797,22 @@ Func _LoadReport()
 		If $iHasBgm > 0 Or $iHasSfx > 0 Then $iHasAud = 1
 		$iSync = Int(IniRead($sReport, $sSection, "Sync", 0))
 		$iInput = Int(IniRead($sReport, $sSection, "Input", 0))
-		If $iSync = 1 Or $iInput = 1 Then $iHasGfx = 1
-		If $iSync = 3 Or $iInput = 3 Then $iHasAud = 1
+		If $iSync = 1 Or $iSync = 3 Then $iHasGfx = 1
+		If $iSync = 2 Or $iSync = 3 Then $iHasAud = 1
+		If $iInput = 1 Or $iInput = 3 Then $iHasGfx = 1
+		If $iInput = 2 Or $iInput = 3 Then $iHasAud = 1
 		GUICtrlSetData($idNotes, StringReplace(IniRead($sReport,$sSection,"Notes", ""), "\n", @CRLF))
 		$aSections = IniReadSectionNames($sReport)
         ;_ArrayDisplay($aSections)
 		$aCxbxBuildsList = _GUICtrlComboBox_GetListArray($idCxbxBuild)
 		$sLastBuild = GUICtrlRead($idCxbxBuild)
 		For $j = 1 To $aSections[0]
+            If $sXbeTitleName="" Or $sXbeTitleName="NaN" Then
+                $sXbeTitleName=IniRead($sReport,$aSections[$j],"TitleName","")
+                If $sXbeTitleName<>"" Then
+                    GUICtrlSetData($idXbeTitleName,$sXbeTitleName)
+                EndIf
+            EndIf
 			For $i = 1 To $aCxbxBuildsList[0]
 				If StringInStr($aCxbxBuildsList[$i], StringRegExpReplace($aSections[$j],"(.*)\|.*\|.*","$1")) Then
 					If StringRight($aCxbxBuildsList[$i], 1) <> "!" Then $aCxbxBuildsList[$i] &= "!"
@@ -854,11 +862,6 @@ Func GuiEvents()
                 EndIf
             Case $idMainSubmit
                 _SubmitReport()
-;~                 If $sReporterName="" Then
-;~                     MsgBox(48,$sTitle,"Please Enter a Reporter Name")
-;~                     Return
-;~                 EndIf
-
             Case $idMainSave
                 If $sReporterName="" Then
                     MsgBox(48,$sTitle,"Please Enter a Reporter Name")
@@ -1271,8 +1274,16 @@ Func _GuiUpdateState()
 			GUICtrlSetState($idGfxHasTxt, $GUI_ENABLE)
 			GUICtrlSetState($idGfxInput, $GUI_ENABLE)
 			GUICtrlSetState($idGfxSync, $GUI_ENABLE)
-			If $iInput = 3 Or $iInput = 1 Then GUICtrlSetState($idGfxInput, $GUI_CHECKED)
-			If $iSync = 3 Or $iSync = 1 Then GUICtrlSetState($idGfxSync, $GUI_CHECKED)
+			If $iInput = 3 Or $iInput = 1 Then
+                GUICtrlSetState($idGfxInput, $GUI_CHECKED)
+            Else
+                GUICtrlSetState($idGfxInput, $GUI_UNCHECKED)
+            EndIf
+			If $iSync = 3 Or $iSync = 1 Then
+                GUICtrlSetState($idGfxSync, $GUI_CHECKED)
+            Else
+                GUICtrlSetState($idGfxSync, $GUI_UNCHECKED)
+            EndIf
 			If $iHasPoly > 0 Then
 				GUICtrlSetState($idGfxHasPoly, $GUI_CHECKED)
 				GUICtrlSetState($idGfxDistortPoly, $GUI_ENABLE)
@@ -1330,8 +1341,16 @@ Func _GuiUpdateState()
 			GUICtrlSetState($idAudDistortSFX, $GUI_ENABLE)
 			GUICtrlSetState($idAudInput, $GUI_ENABLE)
 			GUICtrlSetState($idAudSync, $GUI_ENABLE)
-			If $iInput = 3 Or $iInput = 2 Then GUICtrlSetState($idAudInput, $GUI_CHECKED)
-			If $iSync = 3 Or $iSync = 2 Then GUICtrlSetState($idAudSync, $GUI_CHECKED)
+			If $iInput = 3 Or $iInput = 2 Then
+                GUICtrlSetState($idAudInput, $GUI_CHECKED)
+            Else
+                GUICtrlSetState($idAudInput, $GUI_UNCHECKED)
+            EndIf
+			If $iSync = 3 Or $iSync = 2 Then
+                GUICtrlSetState($idAudSync, $GUI_CHECKED)
+            Else
+                GUICtrlSetState($idAudSync, $GUI_UNCHECKED)
+            EndIf
 			If $iHasBgm > 0 Then
 				GUICtrlSetState($idAudHasBGM, $GUI_CHECKED)
 				GUICtrlSetState($idAudDistortBgm, $GUI_ENABLE)
@@ -1391,6 +1410,5 @@ Func _GuiUpdateState()
 		GUICtrlSetState($idCxbxUpdate, $GUI_DISABLE)
 		GUICtrlSetState($idXbeTitleName, $GUI_DISABLE)
 	EndIf
-
 EndFunc   ;==>_GuiUpdateState
 #EndRegion GuiStuff
