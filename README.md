@@ -1,4 +1,4 @@
-This software has been deprecated.
+<b>This software has been deprecated.</b>
 
 CxbxWrapper is a Diagnostics and Compatibility Reporting tool for the Cxbx-Reloaded project.
 
